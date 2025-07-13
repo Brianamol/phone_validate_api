@@ -1,0 +1,21 @@
+services:
+  rabbitmq_api:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_api
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  phone-validate-api:
+    image: amolbrand254/phone_validate_api:latest
+    container_name: phone_validate_api
+    depends_on:
+      - rabbitmq_api
+    ports:
+      - "3001:3001"
+    environment:
+      RABBITMQ_HOST: rabbitmq_api
+      RABBITMQ_PORT: 5672

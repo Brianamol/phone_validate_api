@@ -5,6 +5,9 @@ const mysql = require("mysql2/promise");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+app.use(express.json()); // Enable JSON body parsing
+
+// ✅ GET client account info by client_id
 app.get("/api/account/:client_id", async (req, res) => {
   const client_id = req.params.client_id?.trim() ?? null;
 
@@ -38,6 +41,27 @@ app.get("/api/account/:client_id", async (req, res) => {
   }
 });
 
+// ✅ POST phone number validation
+app.post("/validate", (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({ error: "Phone number is required" });
+  }
+
+  const isValid = /^\+254\d{9}$/.test(phone); // Example: +254712345678
+
+  if (!isValid) {
+    return res.status(400).json({
+      valid: false,
+      error: "Invalid phone number format. Use +254XXXXXXXXX",
+    });
+  }
+
+  res.json({ valid: true, message: "Phone number is valid" });
+});
+
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`✅ phone_validate_api running on http://localhost:${PORT}`);
 });

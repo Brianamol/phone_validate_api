@@ -1,46 +1,49 @@
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    IMAGE_NAME = 'amolbrand254/phone_validate_api'
-    DOCKER_CREDENTIALS_ID = 'dockerhub-creds' 
-  }
-
-  stages {
-    stage('Checkout Source') {
-      steps {
-        checkout scm
-        echo "✅ Code checked out from Git"
-      }
+    environment {
+        IMAGE_NAME = "amolbrand254/phone_validate_api"
+        IMAGE_TAG = "latest"
     }
 
-    stage('Build Docker Image') {
-      steps {
-        script {
-          echo "🔧 Building Docker image: ${IMAGE_NAME}:latest"
-          docker.build("${IMAGE_NAME}:latest")
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code checked out from ${env.GIT_URL}"
+            }
         }
-      }
-    }
 
-    stage('Push Docker Image to Docker Hub') {
-      steps {
-        script {
-          echo "🚀 Logging in and pushing image to Docker Hub"
-          docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
-            docker.image("${IMAGE_NAME}:latest").push()
-          }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "🔧 Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
+            }
         }
-      }
-    }
-  }
 
-  post {
-    success {
-      echo '✅ CI Pipeline complete: Image built and pushed successfully!'
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    echo "📤 Pushing Docker image to Docker Hub"
+                    withCredentials([usernamePassword(credentialsId: 'github-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                        """
+                    }
+                }
+            }
+        }
     }
-    failure {
-      echo '❌ CI Pipeline failed. Check build logs for errors.'
+
+    post {
+        success {
+            echo '✅ Build & Push Successful!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check logs.'
+        }
     }
-  }
 }
